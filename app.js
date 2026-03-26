@@ -159,3 +159,117 @@ let h=load('invoice_history');
 h.push({id:Date.now(),customer:name,total:sum,date:new Date().toLocaleString(),items:list});
 save('invoice_history',h);
 }
+async function generatePDF(){
+const { jsPDF } = window.jspdf;
+const doc = new jsPDF();
+
+let y = 15;
+
+// ===== HEADER BOX =====
+doc.setFillColor(40,40,40);
+doc.rect(0,0,210,25,'F');
+
+doc.setTextColor(255,255,255);
+doc.setFont("Helvetica","bold");
+doc.setFontSize(18);
+doc.text("MAsad Billing",105,15,{align:"center"});
+
+doc.setTextColor(0,0,0);
+y = 35;
+
+// ===== CUSTOMER INFO =====
+doc.setFontSize(11);
+doc.setFont("Helvetica","normal");
+
+let name = document.getElementById('invoiceName').value || 'Unknown';
+
+doc.text("Customer: " + name, 10, y);
+doc.text("Date: " + new Date().toLocaleString(), 140, y);
+
+y += 10;
+
+// ===== TABLE HEADER BG =====
+doc.setFillColor(230,230,230);
+doc.rect(10,y-5,190,8,'F');
+
+doc.setFont("Helvetica","bold");
+
+doc.text("Product",12,y);
+doc.text("Rate",95,y,{align:"right"});
+doc.text("Qty",115,y,{align:"right"});
+doc.text("Disc",135,y,{align:"right"});
+doc.text("Tax",155,y,{align:"right"});
+doc.text("Total",198,y,{align:"right"});
+
+y += 5;
+doc.line(10,y,200,y);
+y += 5;
+
+// ===== TABLE DATA =====
+doc.setFont("Helvetica","normal");
+
+let list = load('invoice');
+let sum = 0;
+
+list.forEach(i=>{
+let fin = calculateLine(i);
+sum += fin;
+
+// Wrap long product name
+let nameLines = doc.splitTextToSize(i.name, 70);
+
+doc.text(nameLines,12,y);
+doc.text(i.rate.toFixed(2),95,y,{align:"right"});
+doc.text(i.quantity.toString(),115,y,{align:"right"});
+doc.text(i.discount+"%",135,y,{align:"right"});
+doc.text(i.tax+"%",155,y,{align:"right"});
+doc.text(fin.toFixed(2),198,y,{align:"right"});
+
+// Row height auto adjust
+let rowHeight = Math.max(6, nameLines.length * 5);
+
+// Row border
+doc.rect(10,y-4,190,rowHeight);
+
+y += rowHeight;
+
+// ===== PAGE BREAK =====
+if(y > 270){
+doc.addPage();
+y = 20;
+}
+});
+
+y += 8;
+
+// ===== TOTAL BOX =====
+doc.setFillColor(245,245,245);
+doc.rect(120,y-6,80,12,'F');
+
+doc.setFont("Helvetica","bold");
+doc.setFontSize(13);
+
+doc.text("Grand Total:",125,y);
+doc.text("PKR " + sum.toFixed(2),198,y,{align:"right"});
+
+y += 20;
+
+// ===== FOOTER =====
+doc.setFontSize(10);
+doc.setFont("Helvetica","italic");
+doc.text("Thank you for your business!",105,y,{align:"center"});
+
+// ===== SAVE =====
+doc.save("invoice.pdf");
+
+// ===== HISTORY SAVE =====
+let h = load('invoice_history');
+h.push({
+id: Date.now(),
+customer: name,
+total: sum,
+date: new Date().toLocaleString(),
+items: list
+});
+save('invoice_history', h);
+  }
